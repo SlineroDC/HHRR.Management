@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "A2HvYpCciOU=",
+  "success": true,
+  "projectFilePath": "/home/Coder/RiderProjects/HHRR.Management/HHRR.Core/HHRR.API/HHRR.API.csproj",
+  "expectedPackageFiles": [
+    "/home/Coder/.nuget/packages/microsoft.aspnetcore.openapi/10.0.0/microsoft.aspnetcore.openapi.10.0.0.nupkg.sha512",
+    "/home/Coder/.nuget/packages/microsoft.openapi/2.0.0/microsoft.openapi.2.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
