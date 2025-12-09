@@ -10,4 +10,17 @@
       <Folder Include="Controllers\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\HHRR.Infrastructure\HHRR.Infrastructure.csproj" />
+      <ProjectReference Include="..\HHRR.Application\HHRR.Application.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.1" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        <PrivateAssets>all</PrivateAssets>
+      </PackageReference>
+    </ItemGroup>
+
 </Project>
