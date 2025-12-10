@@ -33,7 +33,8 @@ public class ExcelService : IExcelService
                     HiringDate = DateTime.TryParse(worksheet.Cells[row, 5].Text, out var date) 
                                 ? DateTime.SpecifyKind(date, DateTimeKind.Utc) 
                                 : DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc),
-                    DepartmentId = int.TryParse(worksheet.Cells[row, 6].Text, out var deptId) ? deptId : 0,
+                    // DepartmentId = int.TryParse(worksheet.Cells[row, 6].Text, out var deptId) ? deptId : 0, // OLD: ID
+                    DepartmentName = worksheet.Cells[row, 6].Text, // NEW: Name
                     Status = Enum.TryParse<Status>(worksheet.Cells[row, 7].Text, true, out var status) ? status : Status.Active
                 };
 

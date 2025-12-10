@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: hhrr_db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=HHRR_DB
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    image: hhrr_web
+    build:
+      context: .
+      dockerfile: HHRR.Web/Dockerfile
+    environment:
+      - DB_CONNECTION_STRING=Host=db;Port=5432;Database=HHRR_DB;Username=postgres;Password=postgres
+      - ASPNETCORE_ENVIRONMENT=Development
+    env_file:
+      - .env
+    ports:
+      - "5080:8080"
+    depends_on:
+      - db
+
+  api:
+    image: hhrr_api
+    build:
+      context: .
+      dockerfile: HHRR.API/Dockerfile
+    environment:
+      - DB_CONNECTION_STRING=Host=db;Port=5432;Database=HHRR_DB;Username=postgres;Password=postgres
+      - ASPNETCORE_ENVIRONMENT=Development
+    env_file:
+      - .env
+    ports:
+      - "5081:8080"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

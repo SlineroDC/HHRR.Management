@@ -19,10 +19,11 @@ public static class InfrastructureServiceRegistration
             options.UseNpgsql(connectionString));
 
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<IDepartmentRepository, DepartmentRepository>();
         services.AddScoped<IExcelService, ExcelService>();
         services.AddScoped<IPdfService, PdfService>();
         services.AddScoped<IAIService, AIService>();
-        services.AddScoped<IEmailService, EmailService>();
+        services.AddTransient<IEmailService, EmailService>();
 
         return services;
     }

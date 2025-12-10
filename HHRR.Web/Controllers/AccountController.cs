@@ -47,15 +47,17 @@ public class AccountController : Controller
 
             if (result.Succeeded)
             {
-                Console.WriteLine("[DEBUG] Login SUCCESS. Redirecting to Home/Index.");
+                Console.WriteLine("[DEBUG] Login SUCCESS. Checking Roles...");
                 
-                // Check role to redirect appropriately
+                // Redirection Logic based on Role
                 if (await _userManager.IsInRoleAsync(user, "Admin"))
                 {
+                    Console.WriteLine("[DEBUG] Role: Admin -> Redirecting to Dashboard.");
                     return RedirectToAction("Index", "Home");
                 }
                 else
                 {
+                    Console.WriteLine("[DEBUG] Role: User/Other -> Redirecting to Employee Portal.");
                     return RedirectToAction("Me", "EmployeePortal");
                 }
             }

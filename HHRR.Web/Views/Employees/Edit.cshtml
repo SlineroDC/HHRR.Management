@@ -1,0 +1,117 @@
+@model HHRR.Core.Entities.Employee
+
+@{
+    ViewData["Title"] = "Edit Employee";
+}
+
+<div class="min-h-screen bg-gray-900 text-gray-100 p-8 font-sans flex justify-center">
+    <div class="w-full max-w-2xl">
+        <div class="mb-8 border-b border-gray-800 pb-6 flex justify-between items-end">
+            <div>
+                <h1 class="text-3xl font-bold text-white tracking-tight">Edit Employee</h1>
+                <p class="text-gray-400 mt-1">Update employee details</p>
+            </div>
+            <a asp-action="Index" class="text-gray-400 hover:text-white transition flex items-center gap-1 text-sm font-medium">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to List
+            </a>
+        </div>
+
+        <form asp-action="Edit" class="bg-gray-800 p-8 rounded-xl border border-gray-700 shadow-2xl space-y-6">
+            <div asp-validation-summary="ModelOnly" class="bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-lg text-sm"></div>
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="CreatedAt" />
+            <input type="hidden" asp-for="Status" />
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Name -->
+                <div class="space-y-2">
+                    <label asp-for="Name" class="block text-sm font-medium text-gray-300">Full Name</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <input asp-for="Name" class="w-full pl-10 bg-gray-900 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-500" />
+                    </div>
+                    <span asp-validation-for="Name" class="text-red-400 text-xs font-medium"></span>
+                </div>
+
+                <!-- Email -->
+                <div class="space-y-2">
+                    <label asp-for="Email" class="block text-sm font-medium text-gray-300">Email Address</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                            </svg>
+                        </div>
+                        <input asp-for="Email" type="email" class="w-full pl-10 bg-gray-900 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-500" />
+                    </div>
+                    <span asp-validation-for="Email" class="text-red-400 text-xs font-medium"></span>
+                </div>
+
+                <!-- Job Title -->
+                <div class="space-y-2">
+                    <label asp-for="JobTitle" class="block text-sm font-medium text-gray-300">Job Title</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                <path stroke="#6B7280" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 13.692S4 12 10 12s8 1.692 8 1.692V19a2 2 0 01-2 2H4a2 2 0 01-2-2v-5.308z" />
+                            </svg>
+                        </div>
+                        <input asp-for="JobTitle" class="w-full pl-10 bg-gray-900 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-500" />
+                    </div>
+                    <span asp-validation-for="JobTitle" class="text-red-400 text-xs font-medium"></span>
+                </div>
+
+                <!-- Salary -->
+                <div class="space-y-2">
+                    <label asp-for="Salary" class="block text-sm font-medium text-gray-300">Salary (USD)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 font-bold">$</span>
+                        </div>
+                        <input asp-for="Salary" type="number" class="w-full pl-10 bg-gray-900 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-500" />
+                    </div>
+                    <span asp-validation-for="Salary" class="text-red-400 text-xs font-medium"></span>
+                </div>
+
+                <!-- Department -->
+                <div class="md:col-span-2 space-y-2">
+                    <label asp-for="DepartmentId" class="block text-sm font-medium text-gray-300">Department</label>
+                    <div class="relative">
+                        <select asp-for="DepartmentId" class="w-full bg-gray-900 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition appearance-none" asp-items="ViewBag.Departments">
+                            <option value="">-- Select Department --</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <span asp-validation-for="DepartmentId" class="text-red-400 text-xs font-medium"></span>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-4 pt-6 border-t border-gray-700 mt-6">
+                <a asp-action="Index" class="px-5 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition font-medium">Cancel</a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold transition shadow-lg shadow-blue-900/30 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
