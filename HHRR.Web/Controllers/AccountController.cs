@@ -8,11 +8,16 @@ public class AccountController : Controller
 {
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly HHRR.Application.Interfaces.IEmployeeRepository _employeeRepository;
 
-    public AccountController(SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager)
+    public AccountController(
+        SignInManager<IdentityUser> signInManager, 
+        UserManager<IdentityUser> userManager,
+        HHRR.Application.Interfaces.IEmployeeRepository employeeRepository)
     {
         _signInManager = signInManager;
         _userManager = userManager;
+        _employeeRepository = employeeRepository;
     }
 
     [HttpGet]
@@ -43,7 +48,16 @@ public class AccountController : Controller
             if (result.Succeeded)
             {
                 Console.WriteLine("[DEBUG] Login SUCCESS. Redirecting to Home/Index.");
-                return RedirectToAction("Index", "Home");
+                
+                // Check role to redirect appropriately
+                if (await _userManager.IsInRoleAsync(user, "Admin"))
+                {
+                    return RedirectToAction("Index", "Home");
+                }
+                else
+                {
+                    return RedirectToAction("Me", "EmployeePortal");
+                }
             }
             
             if (result.IsLockedOut) Console.WriteLine("[DEBUG] Login FAILED: Locked Out.");
@@ -59,6 +73,52 @@ public class AccountController : Controller
             foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
             {
                 Console.WriteLine($"[DEBUG] Validation Error: {error.ErrorMessage}");
+            }
+        }
+
+        return View(model);
+    }
+
+    [HttpGet]
+    public IActionResult RegisterEmployee()
+    {
+        return View();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> RegisterEmployee(RegisterEmployeeViewModel model)
+    {
+        if (ModelState.IsValid)
+        {
+            var user = new IdentityUser { UserName = model.Email, Email = model.Email };
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (result.Succeeded)
+            {
+                // Assign Role
+                await _userManager.AddToRoleAsync(user, "User");
+
+                // Create Employee Record
+                var employee = new HHRR.Core.Entities.Employee
+                {
+                    Name = model.Name,
+                    Email = model.Email,
+                    Status = HHRR.Core.Enums.Status.Active,
+                    HiringDate = DateTime.UtcNow,
+                    JobTitle = "New Hire", // Default
+                    Salary = 0, // Default
+                    IdentityUserId = user.Id
+                };
+
+                await _employeeRepository.AddAsync(employee);
+
+                await _signInManager.SignInAsync(user, isPersistent: false);
+                return RedirectToAction("Me", "EmployeePortal");
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
             }
         }
 

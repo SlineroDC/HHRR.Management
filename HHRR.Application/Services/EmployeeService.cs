@@ -2,6 +2,7 @@ using FluentValidation;
 using HHRR.Application.DTOs;
 using HHRR.Application.Interfaces;
 using HHRR.Core.Entities;
+using HHRR.Core.Enums;
 
 namespace HHRR.Application.Services;
 
@@ -78,5 +79,47 @@ public class EmployeeService : IEmployeeService
             // For this implementation, we'll just log or let the valid ones pass.
             // throw new ValidationException(string.Join("\n", errors));
         }
+    }
+
+    public async Task<IEnumerable<EmployeeDto>> GetAllEmployeesAsync()
+    {
+        var employees = await _employeeRepository.GetAllAsync();
+        return employees.Select(e => new EmployeeDto
+        {
+            Name = e.Name,
+            Email = e.Email,
+            JobTitle = e.JobTitle,
+            Salary = e.Salary,
+            DepartmentId = e.DepartmentId,
+            HiringDate = e.HiringDate,
+            Status = e.Status
+        });
+    }
+
+    public async Task<EmployeeDto> CreateEmployeeAsync(EmployeeDto dto)
+    {
+        var validationResult = await _validator.ValidateAsync(dto);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var newEmployee = new Employee
+        {
+            Name = dto.Name,
+            Email = dto.Email,
+            JobTitle = dto.JobTitle,
+            Salary = dto.Salary,
+            HiringDate = dto.HiringDate,
+            DepartmentId = dto.DepartmentId,
+            Status = Status.Active // Requirement: Default status to Active
+        };
+
+        await _employeeRepository.AddAsync(newEmployee);
+
+        // Return DTO with ID if possible, but DTO doesn't have ID in this context usually? 
+        // Assuming we just return the input DTO with the status confirmed.
+        dto.Status = newEmployee.Status;
+        return dto;
     }
 }

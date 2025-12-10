@@ -1,0 +1,63 @@
+@model HHRR.Core.Entities.Employee
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<div class="min-h-screen bg-gray-100 p-8 font-sans">
+    <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="bg-blue-600 p-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-white">My Profile</h1>
+                <p class="text-blue-100 mt-1">Employee Self-Service Portal</p>
+            </div>
+            <form asp-controller="Account" asp-action="Logout" method="post">
+                <button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                    Logout
+                </button>
+            </form>
+        </div>
+
+        <div class="p-8">
+            <div class="flex items-center gap-6 mb-8">
+                <div class="h-24 w-24 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 text-3xl font-bold">
+                    @Model.Name.Substring(0, 1)
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">@Model.Name</h2>
+                    <p class="text-gray-600">@Model.JobTitle</p>
+                    <span class="inline-block mt-2 px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
+                        @Model.Status
+                    </span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-500 uppercase tracking-wide">Email</p>
+                    <p class="text-lg font-medium text-gray-900">@Model.Email</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-500 uppercase tracking-wide">Department</p>
+                    <p class="text-lg font-medium text-gray-900">@(Model.Department?.Name ?? "Not Assigned")</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-500 uppercase tracking-wide">Hiring Date</p>
+                    <p class="text-lg font-medium text-gray-900">@Model.HiringDate.ToShortDateString()</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-500 uppercase tracking-wide">Salary</p>
+                    <p class="text-lg font-medium text-gray-900">@Model.Salary.ToString("C")</p>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-200 pt-6 flex justify-end">
+                <a asp-action="DownloadMyCv" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow-md transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download My CV (PDF)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

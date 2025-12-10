@@ -6,28 +6,46 @@ using HHRR.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models; // <--- ESTE ES LA CLAVE PARA SWAGGER
+// // using Microsoft.OpenApi.Models;
 
-// 1. CARGAR .ENV LOCAL
-DotNetEnv.Env.Load(); 
+// ...
+
+// builder.Services.AddSwaggerGen(c =>
+// {
+//     c.SwaggerDoc("v1", new OpenApiInfo { Title = "TalentoPlus API", Version = "v1" });
+//     // ...
+// });
+
+// ...
+
+// app.UseSwagger();
+// app.UseSwaggerUI(c =>
+// {
+//     c.SwaggerEndpoint("/swagger/v1/swagger.json", "TalentoPlus API v1");
+//     c.RoutePrefix = string.Empty;
+// });
+
+// 1. Load Environment Variables
+DotNetEnv.Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 2. SERVICIOS + FIX JSON CYCLES
+// 2. Add Services
 builder.Services.AddControllers()
-    .AddJsonOptions(options => 
+    .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
 
 builder.Services.AddEndpointsApiExplorer();
 
-// 3. CONFIGURACIÓN DE SWAGGER CON SOPORTE JWT (El Candado)
+// 3. Configure Swagger with JWT Support
+/*
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "TalentoPlus API", Version = "v1" });
 
-    // Definir el esquema de seguridad (Bearer Token)
+    // Define Security Scheme (Bearer)
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1Ni...\"",
@@ -37,8 +55,8 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer"
     });
 
-    // Aplicar la seguridad a todos los endpoints
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+    // Apply Security Requirement
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
@@ -56,21 +74,25 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+*/
 
-// 4. INFRAESTRUCTURA Y APLICACIÓN
+// 4. Infrastructure & Application Services
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddApplicationServices();
 
-// 5. IDENTITY
+// 5. Identity Configuration
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 6;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireLowercase = false;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// 6. JWT CONFIG
+// 6. JWT Authentication Configuration
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? "Secret_Key_Default_123456";
 var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "HHRR_API";
 var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "HHRR_Users";
@@ -96,28 +118,31 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
-// 7. PIPELINE (ACTIVAR SWAGGER SIEMPRE PARA PRUEBAS)
-// Quitamos el "if (IsDevelopment)" para que siempre salga en la demo
+// 7. HTTP Request Pipeline
+// Enable Swagger always for demo purposes
+/*
 app.UseSwagger();
-app.UseSwaggerUI(c => 
+app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "TalentoPlus API v1");
-    // Esto hace que Swagger sea la página de inicio al abrir localhost:5070
-    c.RoutePrefix = string.Empty; 
+    c.RoutePrefix = string.Empty; // Serve Swagger at root (localhost:5070/)
 });
+*/
 
 // Data Seeding
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await DbInitializer.SeedAsync(scope.ServiceProvider, context); 
+    await DbInitializer.SeedAsync(scope.ServiceProvider, context);
 }
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication(); 
+app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers(); 
+app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

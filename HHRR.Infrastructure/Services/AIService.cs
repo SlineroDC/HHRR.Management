@@ -8,7 +8,7 @@ namespace HHRR.Infrastructure.Services;
 public class AIService : IAIService
 {
     private readonly IEmployeeRepository _employeeRepository;
-    private const string ApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5:generateContent";
+    private const string ApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
 
     public AIService(IEmployeeRepository employeeRepository)
     {
@@ -83,18 +83,25 @@ public class AIService : IAIService
         try 
         {
             using var doc = JsonDocument.Parse(responseString);
-            var text = doc.RootElement
-                .GetProperty("candidates")[0]
-                .GetProperty("content")
-                .GetProperty("parts")[0]
-                .GetProperty("text")
-                .GetString();
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
+            {
+                var candidate = candidates[0];
+                if (candidate.TryGetProperty("content", out var content) && 
+                    content.TryGetProperty("parts", out var parts) && 
+                    parts.GetArrayLength() > 0)
+                {
+                    var text = parts[0].GetProperty("text").GetString();
+                    return text ?? "La IA generó una respuesta vacía.";
+                }
+            }
                 
-            return text ?? "La IA no generó respuesta.";
+            return "La IA no devolvió candidatos válidos.";
         }
-        catch
+        catch (Exception ex)
         {
-            return "Error interpretando la respuesta de la IA.";
+            return $"Error interpretando la respuesta de la IA: {ex.Message}";
         }
     }
 }
