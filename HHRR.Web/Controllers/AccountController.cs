@@ -1,6 +1,8 @@
 using HHRR.Web.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using HHRR.Application.Interfaces; // Asegúrate de tener este using
+using HHRR.Core.Entities; // Asegúrate de tener este using
 
 namespace HHRR.Web.Controllers;
 
@@ -8,16 +10,19 @@ public class AccountController : Controller
 {
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly UserManager<IdentityUser> _userManager;
-    private readonly HHRR.Application.Interfaces.IEmployeeRepository _employeeRepository;
+    private readonly IEmployeeRepository _employeeRepository;
+    private readonly IDepartmentRepository _departmentRepository; // <--- NUEVA INYECCIÓN
 
     public AccountController(
         SignInManager<IdentityUser> signInManager, 
         UserManager<IdentityUser> userManager,
-        HHRR.Application.Interfaces.IEmployeeRepository employeeRepository)
+        IEmployeeRepository employeeRepository,
+        IDepartmentRepository departmentRepository) // <--- AGREGADO AL CONSTRUCTOR
     {
         _signInManager = signInManager;
         _userManager = userManager;
         _employeeRepository = employeeRepository;
+        _departmentRepository = departmentRepository; // <--- ASIGNACIÓN
     }
 
     [HttpGet]
@@ -100,16 +105,35 @@ public class AccountController : Controller
                 // Assign Role
                 await _userManager.AddToRoleAsync(user, "User");
 
+                // --- SOLUCIÓN AL ERROR DE FOREIGN KEY ---
+                // Buscamos un departamento válido para asignar por defecto
+                var departments = await _departmentRepository.GetAllAsync();
+                
+                // Prioridad: 1. Departamento llamado "General", 2. El primero que encuentre
+                var defaultDept = departments.FirstOrDefault(d => d.Name == "General") 
+                                  ?? departments.FirstOrDefault();
+
+                if (defaultDept == null)
+                {
+                    // Si no hay departamentos, no podemos crear el empleado.
+                    // Esto solo pasa si la BD está vacía (sin Seeds).
+                    ModelState.AddModelError(string.Empty, "Error crítico: No hay departamentos configurados en el sistema.");
+                    // Opcional: Borrar el usuario creado para no dejarlo huérfano
+                    await _userManager.DeleteAsync(user); 
+                    return View(model);
+                }
+
                 // Create Employee Record
-                var employee = new HHRR.Core.Entities.Employee
+                var employee = new Employee
                 {
                     Name = model.Name,
                     Email = model.Email,
                     Status = HHRR.Core.Enums.Status.Active,
                     HiringDate = DateTime.UtcNow,
-                    JobTitle = "New Hire", // Default
-                    Salary = 0, // Default
-                    IdentityUserId = user.Id
+                    JobTitle = "New Hire", 
+                    Salary = 0, 
+                    IdentityUserId = user.Id,
+                    DepartmentId = defaultDept.Id 
                 };
 
                 await _employeeRepository.AddAsync(employee);

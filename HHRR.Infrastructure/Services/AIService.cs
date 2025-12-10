@@ -8,7 +8,8 @@ namespace HHRR.Infrastructure.Services;
 public class AIService : IAIService
 {
     private readonly IEmployeeRepository _employeeRepository;
-    private const string ApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+    // UPDATED: Using gemini-1.5-flash to prevent 404 Not Found
+    private const string ApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
     public AIService(IEmployeeRepository employeeRepository)
     {

@@ -1,15 +1,16 @@
-@model HHRR.Core.Entities.Employee
+@model HHRR.Web.Models.EmployeeCreateViewModel
 
 @{
-    ViewData["Title"] = "Create Employee";
+    ViewData["Title"] = Model.Id == 0 ? "Create Employee" : "Edit Employee";
+    var action = Model.Id == 0 ? "Create" : "Edit";
 }
 
 <div class="min-h-screen bg-gray-900 text-gray-100 p-8 font-sans flex justify-center">
     <div class="w-full max-w-2xl">
         <div class="mb-8 border-b border-gray-800 pb-6 flex justify-between items-end">
             <div>
-                <h1 class="text-3xl font-bold text-white tracking-tight">Create Employee</h1>
-                <p class="text-gray-400 mt-1">Onboard a new team member</p>
+                <h1 class="text-3xl font-bold text-white tracking-tight">@ViewData["Title"]</h1>
+                <p class="text-gray-400 mt-1">@if(Model.Id == 0) { <text>Onboard a new team member</text> } else { <text>Update employee details</text> }</p>
             </div>
             <a asp-action="Index" class="text-gray-400 hover:text-white transition flex items-center gap-1 text-sm font-medium">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -19,22 +20,41 @@
             </a>
         </div>
 
-        <form asp-action="Create" class="bg-gray-800 p-8 rounded-xl border border-gray-700 shadow-2xl space-y-6">
+        <form asp-action="@action" class="bg-gray-800 p-8 rounded-xl border border-gray-700 shadow-2xl space-y-6">
             <div asp-validation-summary="ModelOnly" class="bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-lg text-sm"></div>
+            
+            @if (Model.Id != 0)
+            {
+                <input type="hidden" asp-for="Id" />
+            }
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Name -->
+                <!-- First Name -->
                 <div class="space-y-2">
-                    <label asp-for="Name" class="block text-sm font-medium text-gray-300">Full Name</label>
+                    <label asp-for="FirstName" class="block text-sm font-medium text-gray-300">First Name</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
                             </svg>
                         </div>
-                        <input asp-for="Name" class="w-full pl-10 bg-gray-900 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-500" placeholder="e.g. Jane Doe" />
+                        <input asp-for="FirstName" class="w-full pl-10 bg-gray-900 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-500" placeholder="e.g. Jane" />
                     </div>
-                    <span asp-validation-for="Name" class="text-red-400 text-xs font-medium"></span>
+                    <span asp-validation-for="FirstName" class="text-red-400 text-xs font-medium"></span>
+                </div>
+
+                <!-- Last Name -->
+                <div class="space-y-2">
+                    <label asp-for="LastName" class="block text-sm font-medium text-gray-300">Last Name</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <input asp-for="LastName" class="w-full pl-10 bg-gray-900 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-500" placeholder="e.g. Doe" />
+                    </div>
+                    <span asp-validation-for="LastName" class="text-red-400 text-xs font-medium"></span>
                 </div>
 
                 <!-- Email -->
@@ -79,6 +99,20 @@
                     <span asp-validation-for="Salary" class="text-red-400 text-xs font-medium"></span>
                 </div>
 
+                <!-- Hiring Date -->
+                <div class="space-y-2">
+                    <label asp-for="HiringDate" class="block text-sm font-medium text-gray-300">Hiring Date</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <input asp-for="HiringDate" type="date" class="w-full pl-10 bg-gray-900 border border-gray-600 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-500" />
+                    </div>
+                    <span asp-validation-for="HiringDate" class="text-red-400 text-xs font-medium"></span>
+                </div>
+
                 <!-- Department -->
                 <div class="md:col-span-2 space-y-2">
                     <label asp-for="DepartmentId" class="block text-sm font-medium text-gray-300">Department</label>
@@ -102,7 +136,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
-                    Create Employee
+                    @if(Model.Id == 0) { <text>Create Employee</text> } else { <text>Update Employee</text> }
                 </button>
             </div>
         </form>

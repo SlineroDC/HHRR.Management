@@ -16,6 +16,7 @@ public class DbInitializer
         {
             var departments = new List<Department>
             {
+                new Department { Name = "General", Description = "General" },
                 new Department { Name = "Logístic", Description = "Supply chain management" },
                 new Department { Name = "Marketing", Description = "Advertising and branding" },
                 new Department { Name = "R.R.H.H", Description = "Human talent management" },

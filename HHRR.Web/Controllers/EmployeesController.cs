@@ -1,13 +1,13 @@
 using HHRR.Application.Interfaces;
 using HHRR.Core.Entities;
-using HHRR.Web.Models; // Si usas ViewModels
+using HHRR.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace HHRR.Web.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Admin, Manager")]
 public class EmployeesController : Controller
 {
     private readonly IEmployeeRepository _repository;
@@ -39,27 +39,40 @@ public class EmployeesController : Controller
     public async Task<IActionResult> Create()
     {
         var departments = await _departmentRepository.GetAllAsync();
+        departments ??= new List<Department>();
+        
         ViewBag.Departments = new SelectList(departments, "Id", "Name");
-        return View();
+        return View(new EmployeeCreateViewModel());
     }
 
     // 3. CREATE (POST)
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Employee employee)
+    public async Task<IActionResult> Create(EmployeeCreateViewModel viewModel)
     {
         if (ModelState.IsValid)
         {
-            employee.Status = Core.Enums.Status.Active;
-            employee.CreatedAt = DateTime.UtcNow;
+            var employee = new Employee
+            {
+                Name = $"{viewModel.FirstName.Trim()} {viewModel.LastName.Trim()}",
+                Email = viewModel.Email,
+                JobTitle = viewModel.JobTitle,
+                Salary = viewModel.Salary,
+                HiringDate = viewModel.HiringDate.ToUniversalTime(), // Ensure UTC
+                DepartmentId = viewModel.DepartmentId,
+                Status = Core.Enums.Status.Active,
+                CreatedAt = DateTime.UtcNow
+            };
+
             await _repository.AddAsync(employee);
             TempData["Success"] = "Employee created successfully.";
             return RedirectToAction(nameof(Index));
         }
         
         var departments = await _departmentRepository.GetAllAsync();
-        ViewBag.Departments = new SelectList(departments, "Id", "Name", employee.DepartmentId);
-        return View(employee);
+        departments ??= new List<Department>();
+        ViewBag.Departments = new SelectList(departments, "Id", "Name", viewModel.DepartmentId);
+        return View(viewModel);
     }
 
     // 4. EDIT (GET)
@@ -68,24 +81,51 @@ public class EmployeesController : Controller
         var employee = await _repository.GetByIdAsync(id);
         if (employee == null) return NotFound();
 
+        // Split Name into First and Last
+        var names = (employee.Name ?? "").Split(' ', 2);
+        var firstName = names.Length > 0 ? names[0] : "";
+        var lastName = names.Length > 1 ? names[1] : "";
+
+        var viewModel = new EmployeeCreateViewModel
+        {
+            Id = employee.Id,
+            FirstName = firstName,
+            LastName = lastName,
+            Email = employee.Email,
+            JobTitle = employee.JobTitle,
+            Salary = employee.Salary,
+            HiringDate = employee.HiringDate,
+            DepartmentId = employee.DepartmentId
+        };
+
         var departments = await _departmentRepository.GetAllAsync();
+        departments ??= new List<Department>();
         ViewBag.Departments = new SelectList(departments, "Id", "Name", employee.DepartmentId);
-        return View(employee);
+        return View("Create", viewModel); // Reusing the Create view which now supports Edit via Id
     }
 
     // 5. EDIT (POST)
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, Employee employee)
+    public async Task<IActionResult> Edit(int id, EmployeeCreateViewModel viewModel)
     {
-        if (id != employee.Id) return NotFound();
+        if (id != viewModel.Id) return NotFound();
 
         if (ModelState.IsValid)
         {
             try
             {
-                // Retrieve existing to keep some fields if needed, or just update
-                // For simplicity, assuming repository handles update correctly
+                var employee = await _repository.GetByIdAsync(id);
+                if (employee == null) return NotFound();
+
+                employee.Name = $"{viewModel.FirstName.Trim()} {viewModel.LastName.Trim()}";
+                employee.Email = viewModel.Email;
+                employee.JobTitle = viewModel.JobTitle;
+                employee.Salary = viewModel.Salary;
+                employee.HiringDate = viewModel.HiringDate.ToUniversalTime(); // Ensure UTC
+                employee.DepartmentId = viewModel.DepartmentId;
+                // Keep existing Status and CreatedAt
+
                 await _repository.UpdateAsync(employee);
                 TempData["Success"] = "Employee updated successfully.";
                 return RedirectToAction(nameof(Index));
@@ -97,8 +137,9 @@ public class EmployeesController : Controller
         }
 
         var departments = await _departmentRepository.GetAllAsync();
-        ViewBag.Departments = new SelectList(departments, "Id", "Name", employee.DepartmentId);
-        return View(employee);
+        departments ??= new List<Department>();
+        ViewBag.Departments = new SelectList(departments, "Id", "Name", viewModel.DepartmentId);
+        return View("Create", viewModel);
     }
 
     // 6. DELETE (POST)
@@ -123,7 +164,6 @@ public class EmployeesController : Controller
 
         try
         {
-            // 1. Fetch Departments for Lookup (Name -> Id)
             var departments = await _departmentRepository.GetAllAsync();
             var departmentLookup = departments.ToDictionary(d => d.Name.Trim().ToLower(), d => d.Id);
 
@@ -135,47 +175,36 @@ public class EmployeesController : Controller
 
             foreach (var dto in employeeDtos)
             {
-                // 2. Map Department Name to ID
                 int departmentId = 0;
                 if (!string.IsNullOrEmpty(dto.DepartmentName) && 
                     departmentLookup.TryGetValue(dto.DepartmentName.Trim().ToLower(), out var id))
                 {
                     departmentId = id;
                 }
-                else
-                {
-                    // Optional: Handle missing department (e.g., skip, log, or assign default)
-                    // For now, we'll leave it as 0 (or nullable if supported) which might cause FK error if not handled
-                    // Let's assume 0 means "Unassigned" or handle it if your DB requires valid FK
-                }
 
-                // 3. Upsert Logic (Check by Email)
                 var existingEmployee = await _repository.GetByEmailAsync(dto.Email);
 
                 if (existingEmployee != null)
                 {
-                    // UPDATE
                     existingEmployee.Name = dto.Name;
                     existingEmployee.JobTitle = dto.JobTitle;
                     existingEmployee.Salary = dto.Salary;
-                    existingEmployee.HiringDate = dto.HiringDate;
-                    existingEmployee.DepartmentId = departmentId != 0 ? departmentId : existingEmployee.DepartmentId; // Keep old if new is invalid
-                    // Status? Maybe keep existing status or update if provided
+                    existingEmployee.HiringDate = dto.HiringDate.ToUniversalTime();
+                    existingEmployee.DepartmentId = departmentId != 0 ? departmentId : existingEmployee.DepartmentId;
                     
                     await _repository.UpdateAsync(existingEmployee);
                     updatedCount++;
                 }
                 else
                 {
-                    // INSERT
                     var newEmployee = new Employee
                     {
                         Name = dto.Name,
                         Email = dto.Email,
                         JobTitle = dto.JobTitle,
                         Salary = dto.Salary,
-                        HiringDate = dto.HiringDate,
-                        DepartmentId = departmentId, // Might be 0 if not found
+                        HiringDate = dto.HiringDate.ToUniversalTime(),
+                        DepartmentId = departmentId,
                         Status = Core.Enums.Status.Active,
                         CreatedAt = DateTime.UtcNow
                     };
@@ -202,7 +231,6 @@ public class EmployeesController : Controller
         var employee = await _repository.GetByIdAsync(id);
         if (employee == null) return NotFound();
 
-        // Usamos el servicio de PDF que ya creamos en Infraestructura
         var pdfBytes = await _pdfService.GeneratePdfAsync(employee);
 
         return File(pdfBytes, "application/pdf", $"CV_{employee.Name.Replace(" ", "_")}.pdf");

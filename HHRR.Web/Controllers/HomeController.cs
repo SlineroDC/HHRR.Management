@@ -46,6 +46,6 @@ public class HomeController : Controller
     // Clase auxiliar para recibir el JSON del fetch
     public class QuestionRequest
     {
-        public string Question { get; set; }
+        public string Question { get; set; } = string.Empty;
     }
 }
