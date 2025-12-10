@@ -21,27 +21,61 @@ public class ExcelService : IExcelService
             var worksheet = package.Workbook.Worksheets[0];
             var rowCount = worksheet.Dimension.Rows;
 
-            // Start from row 2 (assuming row 1 is header)
+            // Empezamos en la fila 2 (asumiendo que la 1 son encabezados)
             for (int row = 2; row <= rowCount; row++)
             {
+                // Mapeo basado en TU estructura de Excel:
+                // Col 2: Name, Col 3: LastName -> Unimos para Name
+                var firstName = worksheet.Cells[row, 2].Text;
+                var lastName = worksheet.Cells[row, 3].Text;
+                
+                // Col 7: Email
+                // Col 8: Position -> JobTitle
+                // Col 9: Salary
+                // Col 10: DateEntry -> HiringDate
+                // Col 14: Department -> DepartmentName
+
                 var employee = new EmployeeDto
                 {
-                    Name = worksheet.Cells[row, 1].Text,
-                    Email = worksheet.Cells[row, 2].Text,
-                    JobTitle = worksheet.Cells[row, 3].Text,
-                    Salary = decimal.TryParse(worksheet.Cells[row, 4].Text, out var salary) ? salary : 0,
-                    HiringDate = DateTime.TryParse(worksheet.Cells[row, 5].Text, out var date) 
+                    Name = $"{firstName} {lastName}".Trim(), // Unimos nombre y apellido
+                    Email = worksheet.Cells[row, 7].Text,
+                    JobTitle = worksheet.Cells[row, 8].Text,
+                    
+                    // Limpieza de salario (quitar signos $ o puntos si los hay)
+                    Salary = decimal.TryParse(worksheet.Cells[row, 9].Text
+                        .Replace("$", "").Replace(".", "").Replace(",", "."), out var salary) ? salary : 0,
+                    
+                    HiringDate = DateTime.TryParse(worksheet.Cells[row, 10].Text, out var date) 
                                 ? DateTime.SpecifyKind(date, DateTimeKind.Utc) 
-                                : DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc),
-                    // DepartmentId = int.TryParse(worksheet.Cells[row, 6].Text, out var deptId) ? deptId : 0, // OLD: ID
-                    DepartmentName = worksheet.Cells[row, 6].Text, // NEW: Name
-                    Status = Enum.TryParse<Status>(worksheet.Cells[row, 7].Text, true, out var status) ? status : Status.Active
+                                : DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc),
+                    
+                    DepartmentName = worksheet.Cells[row, 14].Text.Trim(), // Importante el Trim()
+                    
+                    // Col 11: Status (Activo/Inactivo/Vacaciones) -> Mapeo simple
+                    Status = ParseStatus(worksheet.Cells[row, 11].Text)
                 };
 
-                employees.Add(employee);
+                // Validación simple para no agregar filas vacías
+                if (!string.IsNullOrWhiteSpace(employee.Email))
+                {
+                    employees.Add(employee);
+                }
             }
         }
 
         return employees;
+    }
+
+    private Status ParseStatus(string statusText)
+    {
+        // Mapeo manual para asegurar que coincida con tus Enums
+        return statusText.ToLower().Trim() switch
+        {
+            "activo" => Status.Active,
+            "inactivo" => Status.Inactive,
+            // Si tienes un enum para Vacaciones úsalo, si no, ponlo como Active o Inactive según lógica
+            "vacaciones" => Status.Active, 
+            _ => Status.Active
+        };
     }
 }

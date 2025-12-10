@@ -14,16 +14,17 @@ public class DbInitializer
 
         if (!context.Departments.Any())
         {
-            var departments = new List<Department>
+        var departments = new List<Department>
             {
+                
                 new Department { Name = "General", Description = "General" },
-                new Department { Name = "Logístic", Description = "Supply chain management" },
+                new Department { Name = "Logística", Description = "Supply chain management" }, 
                 new Department { Name = "Marketing", Description = "Advertising and branding" },
-                new Department { Name = "R.R.H.H", Description = "Human talent management" },
-                new Department { Name = "Operations", Description = "Central processes" },
-                new Department { Name = "Sales", Description = "Commercial strategies" },
-                new Department { Name = "Technology", Description = "Systems and development" },
-                new Department { Name = "Accounting", Description = "Finance and audit" }
+                new Department { Name = "Recursos Humanos", Description = "Human talent management" }, 
+                new Department { Name = "Operaciones", Description = "Central processes" }, 
+                new Department { Name = "Ventas", Description = "Commercial strategies" }, 
+                new Department { Name = "Tecnología", Description = "Systems and development" }, 
+                new Department { Name = "Contabilidad", Description = "Finance and audit" } 
             };
 
             await context.Departments.AddRangeAsync(departments);

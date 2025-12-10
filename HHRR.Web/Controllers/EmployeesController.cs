@@ -164,8 +164,21 @@ public class EmployeesController : Controller
 
         try
         {
+            // 1. Obtener Departamentos y crear Diccionario para búsqueda rápida
             var departments = await _departmentRepository.GetAllAsync();
             var departmentLookup = departments.ToDictionary(d => d.Name.Trim().ToLower(), d => d.Id);
+
+            // 2. DEFINIR EL ID DE RESPALDO (FALLBACK)
+            // Si el Excel trae un depto que no existe, usaremos "General" o el primero disponible.
+            var defaultDeptId = departments.FirstOrDefault(d => d.Name == "General")?.Id 
+                                ?? departments.FirstOrDefault()?.Id 
+                                ?? 0;
+
+            if (defaultDeptId == 0)
+            {
+                TempData["Error"] = "Error Crítico: No hay departamentos creados en la Base de Datos.";
+                return RedirectToAction("Index");
+            }
 
             using var stream = excelFile.OpenReadStream();
             var employeeDtos = _excelService.ParseExcel(stream);
@@ -175,36 +188,42 @@ public class EmployeesController : Controller
 
             foreach (var dto in employeeDtos)
             {
-                int departmentId = 0;
+                // 3. BUSCAR EL ID DEL DEPARTAMENTO
+                int departmentId = defaultDeptId; // Asumimos el por defecto primero
+
                 if (!string.IsNullOrEmpty(dto.DepartmentName) && 
                     departmentLookup.TryGetValue(dto.DepartmentName.Trim().ToLower(), out var id))
                 {
-                    departmentId = id;
+                    departmentId = id; // ¡Encontrado! Usamos el correcto.
                 }
+                // Si no entra al if, se queda con defaultDeptId, EVITANDO EL ERROR DE FK
 
+                // 4. Lógica de Insertar/Actualizar
                 var existingEmployee = await _repository.GetByEmailAsync(dto.Email);
 
                 if (existingEmployee != null)
                 {
+                    // UPDATE
                     existingEmployee.Name = dto.Name;
                     existingEmployee.JobTitle = dto.JobTitle;
                     existingEmployee.Salary = dto.Salary;
-                    existingEmployee.HiringDate = dto.HiringDate.ToUniversalTime();
-                    existingEmployee.DepartmentId = departmentId != 0 ? departmentId : existingEmployee.DepartmentId;
+                    existingEmployee.HiringDate = dto.HiringDate;
+                    existingEmployee.DepartmentId = departmentId;
                     
                     await _repository.UpdateAsync(existingEmployee);
                     updatedCount++;
                 }
                 else
                 {
+                    // INSERT
                     var newEmployee = new Employee
                     {
                         Name = dto.Name,
                         Email = dto.Email,
                         JobTitle = dto.JobTitle,
                         Salary = dto.Salary,
-                        HiringDate = dto.HiringDate.ToUniversalTime(),
-                        DepartmentId = departmentId,
+                        HiringDate = dto.HiringDate,
+                        DepartmentId = departmentId, // Aquí ya nunca será 0
                         Status = Core.Enums.Status.Active,
                         CreatedAt = DateTime.UtcNow
                     };
@@ -214,7 +233,7 @@ public class EmployeesController : Controller
                 }
             }
             
-            TempData["Success"] = $"Proceso completado: {addedCount} creados, {updatedCount} actualizados.";
+            TempData["Success"] = $"Proceso completado: {addedCount} nuevos, {updatedCount} actualizados.";
         }
         catch (Exception ex)
         {
