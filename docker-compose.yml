@@ -4,12 +4,17 @@ services:
     container_name: hhrr_db
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=HHRR_DB
+      - POSTGRES_PASSWORD=postgres  # Contraseña simple para dev
+      - POSTGRES_DB=HHRR_DB         # Nombre estándar
     ports:
-      - "5432:5432"
+      - "5433:5432" # Puerto externo 5433 para que no choque con tu local
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   web:
     image: hhrr_web
@@ -17,14 +22,14 @@ services:
       context: .
       dockerfile: HHRR.Web/Dockerfile
     environment:
-      - DB_CONNECTION_STRING=Host=db;Port=5432;Database=HHRR_DB;Username=postgres;Password=postgres
+      # AQUÍ ESTÁ LA CLAVE: Host=db (no localhost)
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=HHRR_DB;Username=postgres;Password=postgres
       - ASPNETCORE_ENVIRONMENT=Development
-    env_file:
-      - .env
     ports:
       - "5080:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   api:
     image: hhrr_api
@@ -32,14 +37,14 @@ services:
       context: .
       dockerfile: HHRR.API/Dockerfile
     environment:
-      - DB_CONNECTION_STRING=Host=db;Port=5432;Database=HHRR_DB;Username=postgres;Password=postgres
+      # AQUÍ TAMBIÉN: Host=db
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=HHRR_DB;Username=postgres;Password=postgres
       - ASPNETCORE_ENVIRONMENT=Development
-    env_file:
-      - .env
     ports:
       - "5081:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:
