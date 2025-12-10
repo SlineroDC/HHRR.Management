@@ -12,12 +12,17 @@ public static class InfrastructureServiceRegistration
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING") 
+                               ?? configuration.GetConnectionString("DefaultConnection");
+
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(connectionString));
 
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<IExcelService, ExcelService>();
         services.AddScoped<IPdfService, PdfService>();
+        services.AddScoped<IAIService, AIService>();
+        services.AddScoped<IEmailService, EmailService>();
 
         return services;
     }

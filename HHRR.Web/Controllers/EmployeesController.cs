@@ -1,5 +1,6 @@
 using HHRR.Application.Interfaces;
 using HHRR.Core.Entities;
+using HHRR.Web.Models; // Si usas ViewModels
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,44 +9,82 @@ namespace HHRR.Web.Controllers;
 [Authorize]
 public class EmployeesController : Controller
 {
-    private readonly IEmployeeRepository _employeeRepository;
-    private readonly IEmployeeService _employeeService;
+    private readonly IEmployeeRepository _repository;
+    private readonly IExcelService _excelService; // Necesitamos inyectar esto
+    private readonly IPdfService _pdfService;     // Y esto
 
-    public EmployeesController(IEmployeeRepository employeeRepository, IEmployeeService employeeService)
+    public EmployeesController(IEmployeeRepository repository, IExcelService excelService, IPdfService pdfService)
     {
-        _employeeRepository = employeeRepository;
-        _employeeService = employeeService;
+        _repository = repository;
+        _excelService = excelService;
+        _pdfService = pdfService;
     }
 
+    // 1. LISTAR EMPLEADOS
     public async Task<IActionResult> Index()
     {
-        var employees = await _employeeRepository.GetAllAsync();
-        return View(employees);
+        var employees = await _repository.GetAllAsync();
+        // Ordenamos por fecha de ingreso descendente
+        return View(employees.OrderByDescending(e => e.HiringDate));
     }
 
+    // 2. SUBIR EXCEL (IMPORTAR)
     [HttpPost]
-    public async Task<IActionResult> Import(IFormFile file)
+    public async Task<IActionResult> Upload(IFormFile excelFile)
     {
-        if (file != null && file.Length > 0)
+        if (excelFile == null || excelFile.Length == 0)
         {
-            try
-            {
-                using (var stream = file.OpenReadStream())
-                {
-                    await _employeeService.ImportEmployeesAsync(stream);
-                }
-                TempData["SuccessMessage"] = "Employees imported successfully.";
-            }
-            catch (Exception ex)
-            {
-                TempData["ErrorMessage"] = $"Import failed: {ex.Message}";
-            }
-        }
-        else
-        {
-            TempData["ErrorMessage"] = "Please select a file.";
+            TempData["Error"] = "Por favor selecciona un archivo válido.";
+            return RedirectToAction("Index");
         }
 
-        return RedirectToAction(nameof(Index));
+        try
+        {
+            using var stream = excelFile.OpenReadStream();
+            // El servicio devuelve DTOs, necesitamos mapearlos a Entidades
+            var employeeDtos = _excelService.ParseExcel(stream);
+            
+            int count = 0;
+            foreach (var dto in employeeDtos)
+            {
+                // Mapeo manual rápido (o usa AutoMapper si lo tienes)
+                var employee = new Employee
+                {
+                    Name = dto.Name,
+                    Email = dto.Email,
+                    JobTitle = dto.JobTitle,
+                    Salary = dto.Salary,
+                    HiringDate = dto.HiringDate,
+                    DepartmentId = dto.DepartmentId,
+                    Status = Core.Enums.Status.Active, // Asumimos activo al importar
+                    CreatedAt = DateTime.UtcNow
+                };
+                
+                await _repository.AddAsync(employee);
+                count++;
+            }
+            
+            TempData["Success"] = $"¡Éxito! Se importaron {count} empleados.";
+        }
+        catch (Exception ex)
+        {
+            // Extraemos el error interno si existe (clave para ver errores de BD)
+            var msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+            TempData["Error"] = $"Error importando: {msg}";
+        }
+
+        return RedirectToAction("Index");
+    }
+
+    // 3. DESCARGAR HOJA DE VIDA (PDF)
+    public async Task<IActionResult> DownloadCv(int id)
+    {
+        var employee = await _repository.GetByIdAsync(id);
+        if (employee == null) return NotFound();
+
+        // Usamos el servicio de PDF que ya creamos en Infraestructura
+        var pdfBytes = await _pdfService.GeneratePdfAsync(employee);
+
+        return File(pdfBytes, "application/pdf", $"CV_{employee.Name.Replace(" ", "_")}.pdf");
     }
 }

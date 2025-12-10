@@ -34,6 +34,13 @@ public class EmployeeRepository : IEmployeeRepository
         await _context.SaveChangesAsync();
     }
 
+    public async Task<Employee?> GetByEmailAsync(string email)
+    {
+        return await _context.Employees
+            .Include(e => e.Department)
+            .FirstOrDefaultAsync(e => e.Email == email);
+    }
+
     public async Task UpdateAsync(Employee employee)
     {
         _context.Employees.Update(employee);
