@@ -134,36 +134,38 @@
     async function askGemini() {
         const questionInput = document.getElementById('userQuestion');
         const responseDiv = document.getElementById('aiResponse');
-        const responseContent = responseDiv.firstElementChild; // The inner div
+        const responseContent = responseDiv.firstElementChild;
         const btn = document.getElementById('btnAsk');
-        const question = questionInput.value;
+        const questionText = questionInput.value.trim(); // Trim aquí
 
-        if (!question.trim()) return;
+        if (!questionText) return;
 
-        // UI Loading State
+        // UI Loading
         btn.disabled = true;
-        btn.innerHTML = `
-            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-        `;
+        btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" ...>...</svg>`; // (Tu SVG de carga)
         
         responseDiv.classList.remove('hidden');
-        responseContent.innerHTML = '<span class="text-gray-400 italic animate-pulse">Analyzing database...</span>';
+        responseContent.innerHTML = '<span class="text-gray-400 italic animate-pulse">Thinking...</span>';
 
         try {
+            // PETICIÓN FETCH CORREGIDA
             const res = await fetch('/Home/AskAI', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: question })
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json' 
+                },
+                body: JSON.stringify({ Question: questionText }) // Asegura mayúscula 'Question' por si acaso
             });
 
-            if (!res.ok) throw new Error("Server error");
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(errText || "Server connection failed");
+            }
 
             const data = await res.json();
             
-            // Format Response
+            // MOSTRAR RESPUESTA
             responseContent.innerHTML = `
                 <div class="flex gap-3">
                     <div class="mt-1 flex-shrink-0">
@@ -171,17 +173,15 @@
                     </div>
                     <div>
                         <p class="font-bold text-blue-400 text-sm mb-1">Gemini Answer:</p>
-                        <p class="text-gray-300">${data.answer}</p>
+                        <p class="text-gray-300 leading-relaxed">${data.answer}</p>
                     </div>
                 </div>
             `;
         } catch (error) {
+            console.error(error); // Para ver el error real en consola F12
             responseContent.innerHTML = `
-                <div class="text-red-400 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                    </svg>
-                    Failed to connect to AI service.
+                <div class="text-red-400 p-2 bg-red-900/20 rounded border border-red-500/30">
+                    <strong>Error:</strong> No se pudo obtener respuesta. Verifica la consola.
                 </div>`;
         } finally {
             btn.disabled = false;

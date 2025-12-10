@@ -39,42 +39,6 @@ builder.Services.AddControllers()
 
 builder.Services.AddEndpointsApiExplorer();
 
-// 3. Configure Swagger with JWT Support
-/*
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "TalentoPlus API", Version = "v1" });
-
-    // Define Security Scheme (Bearer)
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1Ni...\"",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-
-    // Apply Security Requirement
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                },
-                Scheme = "oauth2",
-                Name = "Bearer",
-                In = ParameterLocation.Header,
-            },
-            new List<string>()
-        }
-    });
-});
-*/
 
 // 4. Infrastructure & Application Services
 builder.Services.AddInfrastructureServices(builder.Configuration);
@@ -118,16 +82,6 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
-// 7. HTTP Request Pipeline
-// Enable Swagger always for demo purposes
-/*
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "TalentoPlus API v1");
-    c.RoutePrefix = string.Empty; // Serve Swagger at root (localhost:5070/)
-});
-*/
 
 // Data Seeding
 using (var scope = app.Services.CreateScope())

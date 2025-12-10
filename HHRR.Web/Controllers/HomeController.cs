@@ -36,14 +36,24 @@ public class HomeController : Controller
     [HttpPost]
     public async Task<IActionResult> AskAI([FromBody] QuestionRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Question)) 
-            return BadRequest("La pregunta no puede estar vacía.");
+        // 1. Validación básica
+        if (request == null || string.IsNullOrWhiteSpace(request.Question)) 
+            return BadRequest(new { answer = "Por favor escribe una pregunta válida." });
 
-        var answer = await _aiService.GenerateContentAsync(request.Question);
-        return Ok(new { answer });
+        try 
+        {
+            // 2. Llamada al servicio
+            var answer = await _aiService.GenerateContentAsync(request.Question);
+            return Ok(new { answer });
+        }
+        catch (Exception ex)
+        {
+            // 3. Manejo de error controlado
+            return Ok(new { answer = $"Error interno: {ex.Message}" });
+        }
     }
 
-    // Clase auxiliar para recibir el JSON del fetch
+    // Asegúrate de que esta clase sea pública
     public class QuestionRequest
     {
         public string Question { get; set; } = string.Empty;

@@ -1,108 +1,106 @@
 using System.Text;
 using System.Text.Json;
 using HHRR.Application.Interfaces;
-using HHRR.Core.Entities;
+using Microsoft.Extensions.Configuration;
 
 namespace HHRR.Infrastructure.Services;
 
 public class AIService : IAIService
 {
     private readonly IEmployeeRepository _employeeRepository;
-    // UPDATED: Using gemini-1.5-flash to prevent 404 Not Found
-    private const string ApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+    private readonly IConfiguration _configuration;
+    private readonly HttpClient _httpClient;
 
-    public AIService(IEmployeeRepository employeeRepository)
+    // ✅ USAMOS EL MODELO QUE APARECE EN TU LISTA: gemini-2.5-flash
+    private const string ApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+
+    public AIService(IEmployeeRepository employeeRepository, IConfiguration configuration)
     {
         _employeeRepository = employeeRepository;
+        _configuration = configuration;
+        _httpClient = new HttpClient();
     }
 
-    // RENOMBRADO A: GenerateContentAsync (Para coincidir con la Interfaz y el Controlador)
     public async Task<string> GenerateContentAsync(string userQuestion)
     {
-        // Leemos la Key del .env (cargado en Program.cs)
-        var apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
-        
-        if (string.IsNullOrEmpty(apiKey))
-        {
-            return "Error de Configuración: Falta la API Key de Gemini en el archivo .env";
-        }
+        // 1. OBTENER API KEY
+        var apiKey = _configuration["Gemini:ApiKey"];
+        if (string.IsNullOrEmpty(apiKey)) return "Error: Falta la API Key.";
 
-        // 1. Traer datos reales
+        // 2. LEER LA BASE DE DATOS (Aquí es donde "lee" antes de responder)
         var employees = await _employeeRepository.GetAllAsync();
         
-        // 2. Simplificar datos para el Prompt (ahorra tokens)
-        var simplifiedData = employees.Select(e => new
+        // Simplificamos los datos para que sean fáciles de entender para la IA
+        var contextData = employees.Select(e => new
         {
             Nombre = e.Name,
-            Departamento = e.Department?.Name ?? "Sin Asignar",
-            Estado = e.Status.ToString(), // "Active", "Inactive", etc.
+            Cargo = e.JobTitle,
+            Departamento = e.Department?.Name ?? "General", // Nombre del Dept, no ID
             Salario = e.Salary,
-            Cargo = e.JobTitle
+            FechaIngreso = e.HiringDate.ToString("yyyy-MM-dd"),
+            Email = e.Email
         });
 
-        var jsonData = JsonSerializer.Serialize(simplifiedData);
-        
-        // 3. Crear el Prompt en ESPAÑOL
-        var prompt = $@"
-        Actúa como un Asistente de Recursos Humanos experto. 
-        Analiza estos datos JSON reales de la empresa: {jsonData}. 
-        
-        Pregunta del usuario: {userQuestion}. 
-        
-        Responde brevemente basándote SOLO en los datos proporcionados. Si no sabes, dilo.";
+        // Convertimos la BD a texto JSON
+        var jsonContext = JsonSerializer.Serialize(contextData);
 
-        using var client = new HttpClient();
+        // 3. CREAR EL PROMPT (Instrucciones + Datos + Pregunta)
+        var prompt = $@"
+        Eres un experto analista de Recursos Humanos para la empresa 'TalentoPlus'.
         
-        // 4. Estructura del Body para Gemini
+        Tus instrucciones:
+        1. Tu única fuente de verdad son los siguientes DATOS JSON.
+        2. No inventes información. Si la respuesta no está en los datos, di 'No tengo esa información'.
+        3. Si te preguntan por totales o promedios, calcúlalos con los datos provistos.
+        
+        --- DATOS DE LA BASE DE DATOS (EMPLEADOS) ---
+        {jsonContext}
+        ---------------------------------------------
+
+        PREGUNTA DEL USUARIO: {userQuestion}
+        
+        Respuesta (sé conciso y profesional):";
+
+        // 4. PREPARAR EL PAQUETE HTTP
         var requestBody = new
         {
             contents = new[]
             {
-                new
-                {
-                    parts = new[]
-                    {
-                        new { text = prompt }
-                    }
-                }
+                new { parts = new[] { new { text = prompt } } }
             }
         };
 
         var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-        
-        // 5. Llamada a la API
-        var response = await client.PostAsync($"{ApiUrl}?key={apiKey}", jsonContent);
-        
-        if (!response.IsSuccessStatusCode)
-        {
-            return $"Error comunicándose con Gemini (Status: {response.StatusCode})";
-        }
 
-        var responseString = await response.Content.ReadAsStringAsync();
-        
-        // 6. Parsear respuesta
         try 
         {
-            using var doc = JsonDocument.Parse(responseString);
-            var root = doc.RootElement;
+            // 5. ENVIAR A GEMINI
+            var response = await _httpClient.PostAsync($"{ApiUrl}?key={apiKey}", jsonContent);
 
-            if (root.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
+            if (!response.IsSuccessStatusCode)
             {
-                var candidate = candidates[0];
-                if (candidate.TryGetProperty("content", out var content) && 
-                    content.TryGetProperty("parts", out var parts) && 
-                    parts.GetArrayLength() > 0)
-                {
-                    var text = parts[0].GetProperty("text").GetString();
-                    return text ?? "La IA generó una respuesta vacía.";
-                }
+                var error = await response.Content.ReadAsStringAsync();
+                return $"Error Gemini ({response.StatusCode}): {error}";
             }
-                
-            return "La IA no devolvió candidatos válidos.";
+
+            // 6. LEER RESPUESTA
+            var responseString = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(responseString);
+            
+            if (doc.RootElement.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
+            {
+                return candidates[0]
+                    .GetProperty("content")
+                    .GetProperty("parts")[0]
+                    .GetProperty("text")
+                    .GetString() ?? "Sin respuesta.";
+            }
+            
+            return "La IA no devolvió texto.";
         }
         catch (Exception ex)
         {
-            return $"Error interpretando la respuesta de la IA: {ex.Message}";
+            return $"Excepción: {ex.Message}";
         }
     }
 }

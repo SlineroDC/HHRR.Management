@@ -1,8 +1,9 @@
 using HHRR.Application;
+using HHRR.Application.Interfaces;
 using HHRR.Infrastructure;
 using HHRR.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
-
+using HHRR.Infrastructure.Services;
 DotNetEnv.Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,7 +23,7 @@ builder.Services.AddControllersWithViews();
 // 3. Register Infrastructure (DbContext, Repos, Services)
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddApplicationServices();
-
+builder.Services.AddScoped<IAIService, AIService>();
 // 4. Configure Identity
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
