@@ -11,7 +11,7 @@ public class AIService : IAIService
     private readonly IConfiguration _configuration;
     private readonly HttpClient _httpClient;
 
-    // ✅ USAMOS EL MODELO QUE APARECE EN TU LISTA: gemini-2.5-flash
+    // Using the Gemini 2.5 Flash model
     private const string ApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
     public AIService(IEmployeeRepository employeeRepository, IConfiguration configuration)
@@ -23,45 +23,45 @@ public class AIService : IAIService
 
     public async Task<string> GenerateContentAsync(string userQuestion)
     {
-        // 1. OBTENER API KEY
+        // 1. Get API Key
         var apiKey = _configuration["Gemini:ApiKey"];
-        if (string.IsNullOrEmpty(apiKey)) return "Error: Falta la API Key.";
+        if (string.IsNullOrEmpty(apiKey)) return "Error: Missing API Key.";
 
-        // 2. LEER LA BASE DE DATOS (Aquí es donde "lee" antes de responder)
+        // 2. Read from database (this is where it "reads" before responding)
         var employees = await _employeeRepository.GetAllAsync();
         
-        // Simplificamos los datos para que sean fáciles de entender para la IA
+        // Simplify data to make it easy for AI to understand
         var contextData = employees.Select(e => new
         {
-            Nombre = e.Name,
-            Cargo = e.JobTitle,
-            Departamento = e.Department?.Name ?? "General", // Nombre del Dept, no ID
-            Salario = e.Salary,
-            FechaIngreso = e.HiringDate.ToString("yyyy-MM-dd"),
+            Name = e.Name,
+            JobTitle = e.JobTitle,
+            Department = e.Department?.Name ?? "General",
+            Salary = e.Salary,
+            HiringDate = e.HiringDate.ToString("yyyy-MM-dd"),
             Email = e.Email
         });
 
-        // Convertimos la BD a texto JSON
+        // Convert database to JSON text
         var jsonContext = JsonSerializer.Serialize(contextData);
 
-        // 3. CREAR EL PROMPT (Instrucciones + Datos + Pregunta)
+        // 3. Create the prompt (Instructions + Data + Question)
         var prompt = $@"
-        Eres un experto analista de Recursos Humanos para la empresa 'TalentoPlus'.
+        You are an expert Human Resources analyst for the company 'TalentoPlus'.
         
-        Tus instrucciones:
-        1. Tu única fuente de verdad son los siguientes DATOS JSON.
-        2. No inventes información. Si la respuesta no está en los datos, di 'No tengo esa información'.
-        3. Si te preguntan por totales o promedios, calcúlalos con los datos provistos.
+        Your instructions:
+        1. Your only source of truth is the following JSON DATA.
+        2. Do not make up information. If the answer is not in the data, say 'I do not have that information'.
+        3. If asked for totals or averages, calculate them with the provided data.
         
-        --- DATOS DE LA BASE DE DATOS (EMPLEADOS) ---
+        --- DATABASE DATA (EMPLOYEES) ---
         {jsonContext}
         ---------------------------------------------
 
-        PREGUNTA DEL USUARIO: {userQuestion}
+        USER QUESTION: {userQuestion}
         
-        Respuesta (sé conciso y profesional):";
+        Answer (be concise and professional):";
 
-        // 4. PREPARAR EL PAQUETE HTTP
+        // 4. Prepare HTTP request
         var requestBody = new
         {
             contents = new[]
@@ -74,16 +74,16 @@ public class AIService : IAIService
 
         try 
         {
-            // 5. ENVIAR A GEMINI
+            // 5. Send to Gemini
             var response = await _httpClient.PostAsync($"{ApiUrl}?key={apiKey}", jsonContent);
 
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                return $"Error Gemini ({response.StatusCode}): {error}";
+                return $"Gemini Error ({response.StatusCode}): {error}";
             }
 
-            // 6. LEER RESPUESTA
+            // 6. Read response
             var responseString = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(responseString);
             
@@ -93,14 +93,14 @@ public class AIService : IAIService
                     .GetProperty("content")
                     .GetProperty("parts")[0]
                     .GetProperty("text")
-                    .GetString() ?? "Sin respuesta.";
+                    .GetString() ?? "No response.";
             }
             
-            return "La IA no devolvió texto.";
+            return "AI did not return text.";
         }
         catch (Exception ex)
         {
-            return $"Excepción: {ex.Message}";
+            return $"Exception: {ex.Message}";
         }
     }
 }

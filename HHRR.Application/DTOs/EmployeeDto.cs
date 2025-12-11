@@ -10,6 +10,6 @@ public class EmployeeDto
     public decimal Salary { get; set; }
     public DateTime HiringDate { get; set; }
     public int DepartmentId { get; set; }
-    public string DepartmentName { get; set; } = string.Empty; // Added for Excel Import
+    public string DepartmentName { get; set; } = string.Empty;
     public Status Status { get; set; }
 }

@@ -27,15 +27,15 @@ public class EmployeesController : Controller
         _pdfService = pdfService;
     }
 
-    // 1. LISTAR EMPLEADOS
+    // 1. List employees
     public async Task<IActionResult> Index()
     {
         var employees = await _repository.GetAllAsync();
-        // Ordenamos por fecha de ingreso descendente
+        // Sort by hiring date descending
         return View(employees.OrderByDescending(e => e.HiringDate));
     }
 
-    // 2. CREATE (GET)
+    // 2. Create (GET)
     public async Task<IActionResult> Create()
     {
         var departments = await _departmentRepository.GetAllAsync();
@@ -45,7 +45,7 @@ public class EmployeesController : Controller
         return View(new EmployeeCreateViewModel());
     }
 
-    // 3. CREATE (POST)
+    // 3. Create (POST)
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(EmployeeCreateViewModel viewModel)
@@ -75,13 +75,13 @@ public class EmployeesController : Controller
         return View(viewModel);
     }
 
-    // 4. EDIT (GET)
+    // 4. Edit (GET)
     public async Task<IActionResult> Edit(int id)
     {
         var employee = await _repository.GetByIdAsync(id);
         if (employee == null) return NotFound();
 
-        // Split Name into First and Last
+        // Split name into first and last
         var names = (employee.Name ?? "").Split(' ', 2);
         var firstName = names.Length > 0 ? names[0] : "";
         var lastName = names.Length > 1 ? names[1] : "";
@@ -104,7 +104,7 @@ public class EmployeesController : Controller
         return View("Create", viewModel); // Reusing the Create view which now supports Edit via Id
     }
 
-    // 5. EDIT (POST)
+    // 5. Edit (POST)
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, EmployeeCreateViewModel viewModel)
@@ -122,9 +122,9 @@ public class EmployeesController : Controller
                 employee.Email = viewModel.Email;
                 employee.JobTitle = viewModel.JobTitle;
                 employee.Salary = viewModel.Salary;
-                employee.HiringDate = viewModel.HiringDate.ToUniversalTime(); // Ensure UTC
+                employee.HiringDate = viewModel.HiringDate.ToUniversalTime();
                 employee.DepartmentId = viewModel.DepartmentId;
-                // Keep existing Status and CreatedAt
+                // Keep existing status and created date
 
                 await _repository.UpdateAsync(employee);
                 TempData["Success"] = "Employee updated successfully.";
@@ -142,7 +142,7 @@ public class EmployeesController : Controller
         return View("Create", viewModel);
     }
 
-    // 6. DELETE (POST)
+    // 6. Delete (POST)
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
@@ -152,31 +152,31 @@ public class EmployeesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // 7. SUBIR EXCEL (IMPORTAR)
+    // 7. Upload Excel (Import)
     [HttpPost]
     public async Task<IActionResult> Upload(IFormFile excelFile)
     {
         if (excelFile == null || excelFile.Length == 0)
         {
-            TempData["Error"] = "Por favor selecciona un archivo válido.";
+            TempData["Error"] = "Please select a valid file.";
             return RedirectToAction("Index");
         }
 
         try
         {
-            // 1. Obtener Departamentos y crear Diccionario para búsqueda rápida
+            // 1. Get departments and create dictionary for fast lookup
             var departments = await _departmentRepository.GetAllAsync();
             var departmentLookup = departments.ToDictionary(d => d.Name.Trim().ToLower(), d => d.Id);
 
-            // 2. DEFINIR EL ID DE RESPALDO (FALLBACK)
-            // Si el Excel trae un depto que no existe, usaremos "General" o el primero disponible.
+            // 2. Define fallback department ID
+            // If Excel contains a department that doesn't exist, use "General" or the first available
             var defaultDeptId = departments.FirstOrDefault(d => d.Name == "General")?.Id 
                                 ?? departments.FirstOrDefault()?.Id 
                                 ?? 0;
 
             if (defaultDeptId == 0)
             {
-                TempData["Error"] = "Error Crítico: No hay departamentos creados en la Base de Datos.";
+                TempData["Error"] = "Critical Error: No departments found in the database.";
                 return RedirectToAction("Index");
             }
 
@@ -188,22 +188,22 @@ public class EmployeesController : Controller
 
             foreach (var dto in employeeDtos)
             {
-                // 3. BUSCAR EL ID DEL DEPARTAMENTO
-                int departmentId = defaultDeptId; // Asumimos el por defecto primero
+                // 3. Find department ID
+                int departmentId = defaultDeptId; // Assume default first
 
                 if (!string.IsNullOrEmpty(dto.DepartmentName) && 
                     departmentLookup.TryGetValue(dto.DepartmentName.Trim().ToLower(), out var id))
                 {
-                    departmentId = id; // ¡Encontrado! Usamos el correcto.
+                    departmentId = id; // Found! Use the correct one
                 }
-                // Si no entra al if, se queda con defaultDeptId, EVITANDO EL ERROR DE FK
+                // If not found, keep defaultDeptId to avoid FK error
 
-                // 4. Lógica de Insertar/Actualizar
+                // 4. Insert/Update logic
                 var existingEmployee = await _repository.GetByEmailAsync(dto.Email);
 
                 if (existingEmployee != null)
                 {
-                    // UPDATE
+                    // Update existing employee
                     existingEmployee.Name = dto.Name;
                     existingEmployee.JobTitle = dto.JobTitle;
                     existingEmployee.Salary = dto.Salary;
@@ -215,7 +215,7 @@ public class EmployeesController : Controller
                 }
                 else
                 {
-                    // INSERT
+                    // Insert new employee
                     var newEmployee = new Employee
                     {
                         Name = dto.Name,
@@ -223,7 +223,7 @@ public class EmployeesController : Controller
                         JobTitle = dto.JobTitle,
                         Salary = dto.Salary,
                         HiringDate = dto.HiringDate,
-                        DepartmentId = departmentId, // Aquí ya nunca será 0
+                        DepartmentId = departmentId, // Will never be 0 at this point
                         Status = Core.Enums.Status.Active,
                         CreatedAt = DateTime.UtcNow
                     };
@@ -233,18 +233,18 @@ public class EmployeesController : Controller
                 }
             }
             
-            TempData["Success"] = $"Proceso completado: {addedCount} nuevos, {updatedCount} actualizados.";
+            TempData["Success"] = $"Process completed: {addedCount} added, {updatedCount} updated.";
         }
         catch (Exception ex)
         {
             var msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-            TempData["Error"] = $"Error importando: {msg}";
+            TempData["Error"] = $"Import error: {msg}";
         }
 
         return RedirectToAction("Index");
     }
 
-    // 8. DESCARGAR HOJA DE VIDA (PDF)
+    // 8. Download CV (PDF)
     public async Task<IActionResult> DownloadCv(int id)
     {
         var employee = await _repository.GetByIdAsync(id);

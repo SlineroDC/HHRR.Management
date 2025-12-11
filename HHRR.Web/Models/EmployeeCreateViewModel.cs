@@ -4,7 +4,7 @@ namespace HHRR.Web.Models;
 
 public class EmployeeCreateViewModel
 {
-    public int Id { get; set; } // Needed for Edit
+    public int Id { get; set; } 
 
     [Required(ErrorMessage = "First Name is required")]
     [Display(Name = "First Name")]

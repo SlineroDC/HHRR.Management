@@ -21,11 +21,11 @@ public class ExcelService : IExcelService
             var worksheet = package.Workbook.Worksheets[0];
             var rowCount = worksheet.Dimension.Rows;
 
-            // Empezamos en la fila 2 (asumiendo que la 1 son encabezados)
+            // Start at row 2 (assuming row 1 contains headers)
             for (int row = 2; row <= rowCount; row++)
             {
-                // Mapeo basado en TU estructura de Excel:
-                // Col 2: Name, Col 3: LastName -> Unimos para Name
+                // Mapping based on Excel structure:
+                // Col 2: Name, Col 3: LastName -> Combine into Name
                 var firstName = worksheet.Cells[row, 2].Text;
                 var lastName = worksheet.Cells[row, 3].Text;
                 
@@ -37,11 +37,11 @@ public class ExcelService : IExcelService
 
                 var employee = new EmployeeDto
                 {
-                    Name = $"{firstName} {lastName}".Trim(), // Unimos nombre y apellido
+                    Name = $"{firstName} {lastName}".Trim(),
                     Email = worksheet.Cells[row, 7].Text,
                     JobTitle = worksheet.Cells[row, 8].Text,
                     
-                    // Limpieza de salario (quitar signos $ o puntos si los hay)
+                    // Clean salary (remove $ or dots if present)
                     Salary = decimal.TryParse(worksheet.Cells[row, 9].Text
                         .Replace("$", "").Replace(".", "").Replace(",", "."), out var salary) ? salary : 0,
                     
@@ -49,13 +49,13 @@ public class ExcelService : IExcelService
                                 ? DateTime.SpecifyKind(date, DateTimeKind.Utc) 
                                 : DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc),
                     
-                    DepartmentName = worksheet.Cells[row, 14].Text.Trim(), // Importante el Trim()
+                    DepartmentName = worksheet.Cells[row, 14].Text.Trim(),
                     
-                    // Col 11: Status (Activo/Inactivo/Vacaciones) -> Mapeo simple
+                    // Col 11: Status (Active/Inactive/Vacation) -> Simple mapping
                     Status = ParseStatus(worksheet.Cells[row, 11].Text)
                 };
 
-                // Validación simple para no agregar filas vacías
+                // Simple validation to avoid adding empty rows
                 if (!string.IsNullOrWhiteSpace(employee.Email))
                 {
                     employees.Add(employee);
@@ -68,13 +68,12 @@ public class ExcelService : IExcelService
 
     private Status ParseStatus(string statusText)
     {
-        // Mapeo manual para asegurar que coincida con tus Enums
+        // Manual mapping to match the Status enum
         return statusText.ToLower().Trim() switch
         {
             "activo" => Status.Active,
             "inactivo" => Status.Inactive,
-            // Si tienes un enum para Vacaciones úsalo, si no, ponlo como Active o Inactive según lógica
-            "vacaciones" => Status.Active, 
+            "vacaciones" => Status.Active,
             _ => Status.Active
         };
     }

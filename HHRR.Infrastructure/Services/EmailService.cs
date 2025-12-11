@@ -54,7 +54,7 @@ public class EmailService : IEmailService
             <p>Your account has been successfully created.</p>
             <br>
             <p>Best regards,</p>
-            <p>HHRR Team</p>
+            <p>HHRR Management Team</p>
         ";
 
         await SendEmailAsync(toEmail, subject, body);

@@ -4,10 +4,10 @@ services:
     container_name: hhrr_db
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres  # Contraseña simple para dev
-      - POSTGRES_DB=HHRR_DB         # Nombre estándar
+      - POSTGRES_PASSWORD=postgres  # Simple password for development
+      - POSTGRES_DB=HHRR_DB         # Standard database name
     ports:
-      - "5433:5432" # Puerto externo 5433 para que no choque con tu local
+      - "5433:5432" # External port 5433 to avoid conflicts with local PostgreSQL
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,9 +22,12 @@ services:
       context: .
       dockerfile: HHRR.Web/Dockerfile
     environment:
-      # AQUÍ ESTÁ LA CLAVE: Host=db (no localhost)
+      # Database connection uses 'db' as host (Docker service name, not localhost)
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=HHRR_DB;Username=postgres;Password=postgres
       - ASPNETCORE_ENVIRONMENT=Development
+      # Gemini API Key for AI features
+      - Gemini__ApiKey=${GEMINI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     ports:
       - "5080:8080"
     depends_on:
@@ -37,9 +40,12 @@ services:
       context: .
       dockerfile: HHRR.API/Dockerfile
     environment:
-      # AQUÍ TAMBIÉN: Host=db
+      # Database connection uses 'db' as host (Docker service name, not localhost)
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=HHRR_DB;Username=postgres;Password=postgres
       - ASPNETCORE_ENVIRONMENT=Development
+      # Gemini API Key for AI features
+      - Gemini__ApiKey=${GEMINI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     ports:
       - "5081:8080"
     depends_on:

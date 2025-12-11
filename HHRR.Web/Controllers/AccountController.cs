@@ -1,8 +1,8 @@
 using HHRR.Web.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using HHRR.Application.Interfaces; // Asegúrate de tener este using
-using HHRR.Core.Entities; // Asegúrate de tener este using
+using HHRR.Application.Interfaces;
+using HHRR.Core.Entities;
 
 namespace HHRR.Web.Controllers;
 
@@ -11,18 +11,18 @@ public class AccountController : Controller
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly IEmployeeRepository _employeeRepository;
-    private readonly IDepartmentRepository _departmentRepository; // <--- NUEVA INYECCIÓN
+    private readonly IDepartmentRepository _departmentRepository;
 
     public AccountController(
         SignInManager<IdentityUser> signInManager, 
         UserManager<IdentityUser> userManager,
         IEmployeeRepository employeeRepository,
-        IDepartmentRepository departmentRepository) // <--- AGREGADO AL CONSTRUCTOR
+        IDepartmentRepository departmentRepository)
     {
         _signInManager = signInManager;
         _userManager = userManager;
         _employeeRepository = employeeRepository;
-        _departmentRepository = departmentRepository; // <--- ASIGNACIÓN
+        _departmentRepository = departmentRepository;
     }
 
     [HttpGet]
@@ -102,23 +102,22 @@ public class AccountController : Controller
 
             if (result.Succeeded)
             {
-                // Assign Role
+                // Assign role
                 await _userManager.AddToRoleAsync(user, "User");
 
-                // --- SOLUCIÓN AL ERROR DE FOREIGN KEY ---
-                // Buscamos un departamento válido para asignar por defecto
+                // Find a valid default department
                 var departments = await _departmentRepository.GetAllAsync();
                 
-                // Prioridad: 1. Departamento llamado "General", 2. El primero que encuentre
+                // Priority: 1. Department named "General", 2. First available
                 var defaultDept = departments.FirstOrDefault(d => d.Name == "General") 
                                   ?? departments.FirstOrDefault();
 
                 if (defaultDept == null)
                 {
-                    // Si no hay departamentos, no podemos crear el empleado.
-                    // Esto solo pasa si la BD está vacía (sin Seeds).
-                    ModelState.AddModelError(string.Empty, "Error crítico: No hay departamentos configurados en el sistema.");
-                    // Opcional: Borrar el usuario creado para no dejarlo huérfano
+                    // Cannot create employee if no departments exist
+                    // This only happens if the database is empty (no seeds)
+                    ModelState.AddModelError(string.Empty, "Critical error: No departments configured in the system.");
+                    // Optional: Delete the created user to avoid orphaned records
                     await _userManager.DeleteAsync(user); 
                     return View(model);
                 }

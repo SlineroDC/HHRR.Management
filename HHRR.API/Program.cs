@@ -6,24 +6,8 @@ using HHRR.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
-// // using Microsoft.OpenApi.Models;
-
-// ...
-
-// builder.Services.AddSwaggerGen(c =>
-// {
-//     c.SwaggerDoc("v1", new OpenApiInfo { Title = "TalentoPlus API", Version = "v1" });
-//     // ...
-// });
-
-// ...
-
-// app.UseSwagger();
-// app.UseSwaggerUI(c =>
-// {
-//     c.SwaggerEndpoint("/swagger/v1/swagger.json", "TalentoPlus API v1");
-//     c.RoutePrefix = string.Empty;
-// });
+using DotNetEnv;
+using Microsoft.OpenApi.Models; 
 
 // 1. Load Environment Variables
 DotNetEnv.Env.Load();
@@ -39,6 +23,41 @@ builder.Services.AddControllers()
 
 builder.Services.AddEndpointsApiExplorer();
 
+// --- CONFIGURACIÓN SWAGGER 
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "TalentoPlus API", Version = "v1" });
+
+    // Configuración EXTRA: Botón de "Authorize" para JWT
+    // Como ya tienes JWT configurado abajo, esto te permitirá probarlo visualmente
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: 'Bearer 12345abcdef'",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "oauth2",
+                Name = "Bearer",
+                In = ParameterLocation.Header,
+            },
+            new List<string>()
+        }
+    });
+});
+// -----------------------------------------
 
 // 4. Infrastructure & Application Services
 builder.Services.AddInfrastructureServices(builder.Configuration);
@@ -82,7 +101,6 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
-
 // Data Seeding
 using (var scope = app.Services.CreateScope())
 {
@@ -90,7 +108,14 @@ using (var scope = app.Services.CreateScope())
     await DbInitializer.SeedAsync(scope.ServiceProvider, context);
 }
 
-app.UseHttpsRedirection();
+// --- ACTIVACIÓN SWAGGER (Corregida) ---
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "TalentoPlus API v1");
+});
+// -------------------------------------
+
 
 app.UseAuthentication();
 app.UseAuthorization();

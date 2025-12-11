@@ -4,6 +4,8 @@ using HHRR.Infrastructure;
 using HHRR.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using HHRR.Infrastructure.Services;
+using DotNetEnv;
+
 DotNetEnv.Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
